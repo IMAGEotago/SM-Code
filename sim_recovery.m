@@ -108,15 +108,15 @@ alpha_range = [alpha_min, alpha_max];
 zeta_range = [zeta_min, zeta_max];
 
 fprintf('\n== ESTIMATING RUNTIME ==\n');
-fprintf('Running benchmark with first 10 simulations...\n');
+fprintf('Running benchmark with 10 simulations...\n');
 
 benchmark_times = zeros(10, 1);
 benchmark_prior = priors_to_test{1};
 
 for bench_idx = 1:10
     tic;
-    run_single_two_param_recovery_with_prior(0.3, 2.0, 0.1, pairings_for_benchmark, ...
-        N_for_benchmark, benchmark_prior);
+    run_single_two_param_recovery_with_prior(0.3, 2.0, 0.1, ...
+        pairings_for_benchmark, N_for_benchmark, benchmark_prior);
     benchmark_times(bench_idx) = toc;
 end
 
@@ -266,9 +266,9 @@ save(summary_file,'summary','stop_refinement');
 fprintf('Summary saved for next refinement round.\n');
 
 %% Save results
-save('pilot_informed_recovery_results.mat', 'all_results', 'all_seeds_results', ...
-    'priors_to_test', 'best_priors', 'seeds', 'pilot_results', 'alpha_range', 'zeta_range', ...
-    'sigma_values_test');
+save('pilot_informed_recovery_results.mat', 'all_results', ...
+    'all_seeds_results', 'priors_to_test', 'best_priors', 'seeds', ...
+    'pilot_results', 'alpha_range', 'zeta_range', 'sigma_values_test');
 
 if use_parallel
     delete(gcp('nocreate'));
@@ -301,16 +301,16 @@ function results = run_two_param_recovery_with_prior(prior_settings, seed, pairi
     results.zeta_errors = zeros(n_subjects, n_sigmas);
     results.model_evidence = zeros(n_subjects, n_sigmas);
     results.model_fits = zeros(n_subjects, n_sigmas);
-    results.alpha_prior_used = struct('muTheta', prior_settings.muTheta, 'SigmaTheta', ...
-        prior_settings.SigmaTheta);
-    results.zeta_prior_used = struct('muPhi', prior_settings.muPhi, 'SigmaPhi', ...
-        prior_settings.SigmaPhi);
+    results.alpha_prior_used = struct('muTheta', prior_settings.muTheta, ...
+        'SigmaTheta', prior_settings.SigmaTheta);
+    results.zeta_prior_used = struct('muPhi', prior_settings.muPhi, ...
+        'SigmaPhi', prior_settings.SigmaPhi);
     
     for s = 1:n_subjects
         for j = 1:n_sigmas
             [recovered_alpha, recovered_zeta, model_evidence, model_fit] = ...
-                run_single_two_param_recovery_with_prior(true_alphas(s), true_zetas(s), ...
-                sigma_values(j), pairings, N, prior_settings);
+                run_single_two_param_recovery_with_prior(true_alphas(s), ...
+                true_zetas(s), sigma_values(j), pairings, N, prior_settings);
             
             results.recovered_alphas(s, j) = recovered_alpha;
             results.recovered_zetas(s, j) = recovered_zeta;
@@ -324,8 +324,8 @@ end
 
 %% Single subject recovery
 function [recovered_alpha, recovered_zeta, model_evidence, model_fit] = ...
-    run_single_two_param_recovery_with_prior(true_alpha, true_zeta, sigma, pairings, N, ...
-    prior_settings)
+    run_single_two_param_recovery_with_prior(true_alpha, true_zeta, ...
+    sigma, pairings, N, prior_settings)
     
     theta_true = log(true_alpha / (1 - true_alpha));
     phi_true = log(true_zeta);
@@ -335,8 +335,8 @@ function [recovered_alpha, recovered_zeta, model_evidence, model_fit] = ...
     opt_sim.priors.SigmaX0 = 0;
     
     sigma_precision = 1 / (sigma^2);
-    [y_sim_raw, ~] = VBA_simulate(N, @f_contingency_rw_single_param, @g_sigmoid, ...
-        theta_true, phi_true, pairings, Inf, sigma_precision, opt_sim);
+    [y_sim_raw, ~] = VBA_simulate(N, @f_contingency_rw_single_param, ...
+        @g_sigmoid, theta_true, phi_true, pairings, Inf, sigma_precision, opt_sim);
     y_sim = max(0, min(1, y_sim_raw));
     
     % Set up VBA inversion
@@ -366,8 +366,8 @@ function [recovered_alpha, recovered_zeta, model_evidence, model_fit] = ...
     opt.priors.b_sigma = b_sigma;
     
     % Run VBA inversion
-    [post, out] = VBA_NLStateSpaceModel(y_sim, pairings, @f_contingency_rw_single_param, ...
-        @g_sigmoid, dim, opt);
+    [post, out] = VBA_NLStateSpaceModel(y_sim, pairings, ...
+        @f_contingency_rw_single_param, @g_sigmoid, dim, opt);
     
     % Extract recovered parameters
     recovered_alpha = 1/(1+exp(-post.muTheta));
