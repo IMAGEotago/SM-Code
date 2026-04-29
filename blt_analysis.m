@@ -185,12 +185,10 @@ for i = 1:n_datasets
 end
 
 %% Per-subject model comparison: RW vs no-learning null
-% Variational free energy difference is the primary model-comparison metric
-deltaF  = i_freeenergy_rw' - i_freeenergy_null';    % RW - Null
-deltaR2 = i_modelfit_rw' - i_modelfit_null';        % RW - Null
+deltaF  = i_freeenergy_rw' - i_freeenergy_null';
+deltaR2 = i_modelfit_rw' - i_modelfit_null';
 
-% Use deltaF directly rather than exp(deltaF), to avoid numerical overflow
-F_threshold = 3;   % moderate evidence; use 5 for stricter evidence
+F_threshold = 3;
 retain_F = deltaF > F_threshold;
 
 decision_str = repmat("Retain", numel(deltaF), 1);
@@ -227,18 +225,10 @@ end
 %% Keep only complete participant pairs where both files are retained
 base_id = regexprep(string(T_subjects.PPID), '-\d+$', '');
 [G, base_groups] = findgroups(base_id);
-
-% Number of files available for each participant base ID
 n_files_per_base = splitapply(@numel, base_id, G);
-
-% Whether all files for that participant were retained
 row_included = retain_F;
 all_included_per_base = splitapply(@all, row_included, G);
-
-% Keep only participants with exactly 2 files and both retained
 keep_base = (n_files_per_base == 2) & all_included_per_base;
-
-% Expand group-level decision back to row level
 keep_rows = keep_base(G);
 
 %% Optional reporting for dropped participants
@@ -254,7 +244,7 @@ else
     end
 end
 
-fprintf('\nParticipants dropped because at least one file failed the DeltaF criterion:\n');
+fprintf('\nParticipants dropped because at least one file failed the criterion:\n');
 if isempty(failed_pair_base)
     fprintf('  None\n');
 else
