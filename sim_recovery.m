@@ -1,7 +1,7 @@
 function all_results = sim_recovery()
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% BLT Behavioural Data: Simulation andx Parameter Recovery                %
+%% BLT Behavioural Data: Simulation and Parameter Recovery                %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ----------------------------------------------------------------------- %
 % Author: Sophie Morris                                                   %
@@ -19,6 +19,7 @@ addpath(genpath("C:/Users/sarmo/OneDrive/Desktop/computational_modelling"));
 load('pilot_analysis_uninformed.mat', 'pilot_results');
 
 %% Configurations
+% n_seeds may be adjusted for less 'runs' if needed
 n_seeds = 10;
 seeds = [42, 234, 1264, 2001, 5247, 4521, 7816, 2458, 441, 647];
 
@@ -48,11 +49,12 @@ end
 %% Define priors to test
 priors_to_test = {};
 
-mutheta_list = -0.75;
-sigmatheta_list = 0.5;
-
-muphi_list = 1.5;
-sigmaphi_list = 0.5;
+% Starting priors are shown below. To test multiple configurations, specify
+% e.g. [-0.75 -0.5 -0.25] for any of the 'lists' below.
+mutheta_list = 0;
+sigmatheta_list = 1;
+muphi_list = 0;
+sigmaphi_list = 1;
 
 alpha_priors = repmat(struct('muTheta',[],'SigmaTheta',[]), 0, 1);
 
@@ -94,9 +96,10 @@ alpha_max = min(0.99, max(pilot_results.alphas) * 1.2);  % 0.77
 zeta_min = max(0.1, min(pilot_results.zetas) * 0.8);  % floor at 0.1 
 zeta_max = max(pilot_results.zetas) * 1.2;  % 10.14
 
+% Below values may be adjusted to test varying levels of observation noise
 sigma_values_test = [0.05; 0.15; 0.25; 0.35];
 
-%% BENCHMARKING
+%% Benchmarking
 pairings = load("C:/Users/sarmo/OneDrive/Desktop/computational_modelling/blt_pairings.mat");
 pairings_for_benchmark = double(pairings.data(:))';
 N_for_benchmark = length(pairings_for_benchmark);
@@ -280,7 +283,10 @@ end
 function results = run_two_param_recovery_with_prior(prior_settings, seed, pairings, N, ...
     alpha_range, zeta_range, sigma_values)
     
-    n_subjects = 500;
+    % Adjust n_subjects as needed - 100 were used here initially to
+    % iteratively test prior configurations, and 500 were then used to
+    % validate the final selected prior configuration
+    n_subjects = 100; 
     n_sigmas = length(sigma_values);
     
     rng(seed);
@@ -467,6 +473,9 @@ function aggregated_results = aggregate_across_seeds(all_seeds_results, ~)
 end
 
 %% Identify best priors
+% Priors are evaluated here based on recovery correlations, correlations
+% between estimation errors for the two parameters, and stability across
+% runs
 function best_priors = identify_best_priors_multiseed(all_results)
     fprintf('\n== BEST PRIOR IDENTIFICATION ==\n');
 
@@ -485,8 +494,8 @@ function best_priors = identify_best_priors_multiseed(all_results)
             mean(all_results{p}.zeta_corr_std));
     end
 
-    valid_priors = error_corr_overall <= 0.354;
-    fprintf('Priors meeting mean |error corr| <= 0.35: %d/%d\n', sum(valid_priors), n_priors);
+    valid_priors = error_corr_overall <= 0.3;
+    fprintf('Priors meeting mean |error corr| <= 0.3: %d/%d\n', sum(valid_priors), n_priors);
 
     if any(valid_priors)
         valid_idx = find(valid_priors);
@@ -503,13 +512,12 @@ function best_priors = identify_best_priors_multiseed(all_results)
         fprintf('  mean zeta r = %.3f\n', zeta_corr_overall(best_prior));
         fprintf('  mean |err corr|= %.3f\n', error_corr_overall(best_prior));
 
-        % rank all valid priors by alpha recovery
+        % Rank all valid priors by alpha recovery
         [~, order] = sort(alpha_corr_overall(valid_priors), 'descend');
         ranked_idx = valid_idx(order);
 
     else
-        warning('No priors met mean |error corr| <= 0.35. Falling back to lowest error correlation prior.');
-
+        
         [~, best_prior] = min(error_corr_overall);
 
         fprintf('Fallback prior #%d: muTheta=%.2f, SigmaTheta=%.2f, muPhi=%.2f, SigmaPhi=%.2f\n', ...
@@ -636,6 +644,7 @@ function check_convergence_comprehensive(all_results)
     
     n_subjects_actual = length(all_results{1}.all_seeds{1}.true_alphas);
     
+    % Test sizes may be adjusted here
     test_sizes = [20, 40, 60, 80, 100];
     test_sizes = test_sizes(test_sizes <= n_subjects_actual);
     
