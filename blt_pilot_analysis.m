@@ -11,7 +11,7 @@ function pilot_results = blt_pilot_analysis()
 % collected as part of the 'Breathing and Anxiety' study, conducted       %
 % collaboratively with the Department of Psychology, School of Sport,     %
 % Physical Education and Sport Science, and the School of Pharmacy at the %
-% Universty of Otago. A imestamped aalysis plan is available on           %
+% Universty of Otago. A timestamped analysis plan is available on         %
 % (https://github.com/IMAGEotago).                                        %
 % ----------------------------------------------------------------------- %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -124,7 +124,7 @@ function results = fit_pilots(pilot_data, ~)
     n_excluded_invalid = 0;
     n_excluded_learning = 0;
     
-    alpha_threshold = 0.05;
+    alpha_threshold = 0.05; 
     
     for i = 1:n_pilots
         fprintf('Fitting pilot %d/%d... ', i, n_pilots);
@@ -168,10 +168,12 @@ function results = fit_pilots(pilot_data, ~)
         opt = struct();
         opt.verbose = 0; 
         opt.DisplayWin = 0;
-        opt.priors.muTheta = -0.3;
-        opt.priors.SigmaTheta = 0.5;
-        opt.priors.muPhi = 1.9;
-        opt.priors.SigmaPhi = 0.6;
+        % Initially, theta and phi priors are centred on weakly-informative,
+        % theoretically neutral values
+        opt.priors.muTheta = 0;
+        opt.priors.SigmaTheta = 1;
+        opt.priors.muPhi = 0;
+        opt.priors.SigmaPhi = 1;
         opt.priors.muX0 = 0.5; 
         opt.priors.SigmaX0 = 0;
         
@@ -192,7 +194,7 @@ function results = fit_pilots(pilot_data, ~)
         zeta_mean = exp(post.muPhi);
         
         if alpha_mean < alpha_threshold
-            fprintf('EXCLUDED (α = %.2f, lower < %.2f)\n', alpha_mean, alpha_threshold);
+            fprintf('Excluded (α = %.2f, lower < %.2f)\n', alpha_mean, alpha_threshold);
             n_excluded_learning = n_excluded_learning + 1;
             results.excluded_subjects(end+1) = i;
             continue;
@@ -228,7 +230,7 @@ function results = fit_pilots(pilot_data, ~)
     fprintf('Included in analysis: %d\n', length(results.alphas));    
 end    
 
-%% Function: Calculate trimmed standard deviation
+%% Function: Calculate robust SD
 function trimmed_sd = std_trimmed(data, trim_percent)
     n = length(data);
     trim_count = floor(n * trim_percent / 200);
