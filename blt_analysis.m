@@ -94,6 +94,8 @@ for i = 1:n_datasets
     options.isYout = invalid_trials(:)';
     options.verbose = 1;
     options.DisplayWin = false;
+    % Priors used here are the optimal configuration from simulation and
+    % recovery analyses
     options.priors.muPhi = 1.9;
     options.priors.SigmaPhi = 0.6;
     options.priors.muX0 = 0.5;
@@ -105,9 +107,11 @@ for i = 1:n_datasets
     options.priors.b_sigma = b_sigma;
 
     %% RW model (learning)
+    % Priors used here are the optimal configuration from simulation and
+    % recovery analyses
     options_rw = options;
     options_rw.priors.muTheta = -0.3;
-    options_rw.priors.SigmaTheta = 0.5;
+    options_rw.priors.SigmaTheta = 0.4;
 
     [post_rw, out_rw] = VBA_NLStateSpaceModel(y, u, @f_rw, @g_sigmoid, ...
         dim, options_rw);
@@ -188,7 +192,7 @@ end
 deltaF  = i_freeenergy_rw' - i_freeenergy_null';
 deltaR2 = i_modelfit_rw' - i_modelfit_null';
 
-F_threshold = 3;
+F_threshold = 3; % Moderate evidence (Kass & Raftery, 1995)
 retain_F = deltaF > F_threshold;
 
 decision_str = repmat("Retain", numel(deltaF), 1);
@@ -231,7 +235,7 @@ all_included_per_base = splitapply(@all, row_included, G);
 keep_base = (n_files_per_base == 2) & all_included_per_base;
 keep_rows = keep_base(G);
 
-%% Optional reporting for dropped participants
+%% Reporting for dropped participants
 missing_pair_base = base_groups(n_files_per_base ~= 2);
 failed_pair_base  = base_groups((n_files_per_base == 2) & ~all_included_per_base);
 
